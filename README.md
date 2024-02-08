@@ -1,5 +1,5 @@
 # Finance App
-[![CI debug](https://github.com/iartr/SmartMirror/actions/workflows/debug.yml/badge.svg)](https://github.com/iartr/SmartMirror/actions/workflows/debug.yml)   
+[![build](https://github.com/iartr/FinanceTestApp/actions/workflows/build.yml/badge.svg)](https://github.com/iartr/FinanceTestApp/actions/workflows/build.yml)   
       
 A test task in the form of a trading application.     
 Using WebSocket 🌐 & Compose 🎨.

@@ -63,13 +63,12 @@ class StocksRepositoryImpl(
                 .filterIsInstance<WebSocketState.Message>()
                 .mapNotNull { runCatching { JSONArray(it.text) }.getOrNull() }
                 .filter { it.get(0) == "q" }
-                .map { it.getJSONObject(1) }
-                .filter { !it.optDouble("pcp", Double.NaN).isNaN() }
-                .collect { message ->
-                    val ticker = message.getString("c")
-                    val cached = tickerCache[ticker]
+                .map { StockDomain(it.getJSONObject(1)) }
+                .filter { !it.percentChangeFromLastClose.isNaN() }
+                .collect { ticker ->
+                    val cached = tickerCache[ticker.ticker]
 
-                    val newTickerValue = message.optDouble("pcp", Double.NaN)
+                    val newTickerValue = ticker.percentChangeFromLastClose
                     val updatedStock = cached?.let {
                         var changed = false
                         var changedIncrease = false
@@ -79,12 +78,13 @@ class StocksRepositoryImpl(
                                 changed = true
                                 changedIncrease = newTickerValue > cached.percentChangeFromLastClose
                             }
+
                             it.copy(
                                 percentChangeFromLastClose = newTickerValue,
-                                lastTradeExchangeName = message.optString("ltr", cached.lastTradeExchangeName),
-                                paperName = message.optString("name", message.optString("name2", cached.paperName)),
-                                lastTradePrice = message.optDouble("ltp", cached.lastTradePrice),
-                                priceChangePointsFromLastClose = message.optDouble("chg", cached.priceChangePointsFromLastClose),
+                                lastTradeExchangeName = ticker.lastTradeExchangeName.ifBlank { cached.lastTradeExchangeName },
+                                paperName = ticker.paperName.ifBlank { cached.paperName },
+                                lastTradePrice = ticker.lastTradePrice.takeIf { !it.isNaN() } ?: cached.lastTradePrice,
+                                priceChangePointsFromLastClose = ticker.priceChangePointsFromLastClose.takeIf { !it.isNaN() } ?: cached.priceChangePointsFromLastClose,
                                 changed = changed,
                                 changedIncrease = changedIncrease
                             )
@@ -92,19 +92,9 @@ class StocksRepositoryImpl(
                             it
                         }
 
-                    } ?: StockDomain(
-                        ticker = ticker,
-                        percentChangeFromLastClose = newTickerValue,
-                        lastTradeExchangeName = message.optString("ltr", ""),
-                        paperName = message.optString("name", message.optString("name2", "")),
-                        lastTradePrice = message.optDouble("ltp", 0.0),
-                        priceChangePointsFromLastClose = message.optDouble("chg", 0.0),
-                        icon = "https://tradernet.com/logos/get-logo-by-ticker?ticker=$ticker",
-                        changed = false,
-                        changedIncrease = false
-                    )
+                    } ?: ticker
 
-                    tickerCache[ticker] = updatedStock
+                    tickerCache[ticker.ticker] = updatedStock
 
                     emit(tickerCache.values)
                 }

@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainViewModel(
     private val scopes: AppScopes,
@@ -53,12 +54,13 @@ class MainViewModel(
     init {
         scope.launch(scopes.ioDispatcher) {
             stocksRepository.observeStocks()
-                .flowOn(scopes.mainDispatcherImmediate)
                 .onStart { uiStateMutable.emit(UiState.Loading) }
                 .catch { uiStateMutable.emit(UiState.Error) }
                 .map { list -> list.map { Mapper(it).map() } }
                 .collectLatest {
-                    uiStateMutable.emit(UiState.ListData(it))
+                    withContext(scopes.mainDispatcherImmediate) {
+                        uiStateMutable.emit(UiState.ListData(it))
+                    }
                 }
         }
     }
