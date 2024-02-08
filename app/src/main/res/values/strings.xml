@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">FinanceApp</string>
+    <string name="retry">Повторить</string>
+    <string name="error_ocurred">Произошла непредвиденная ошибка. Пожалуйста, повторите запрос</string>
+</resources>
