@@ -9,4 +9,4 @@ What can be improved:
 - tests
 - websocket retries (exp. backoff)
 
-[APK Link](https://example.com)
+[APK Link](https://drive.google.com/file/d/1MHoZe9Farw9-YVxX5YEwHFssPcm_K6Oy/view?usp=sharing)
