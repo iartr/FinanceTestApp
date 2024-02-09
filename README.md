@@ -8,4 +8,5 @@ What can be improved:
 - feature-module architecture
 - tests
 - websocket retries (exp. backoff)
-- improved DI
+
+[APK Link](https://example.com)

@@ -22,7 +22,7 @@ class WebsocketDataSource(
     private val webSocketHolder: WebSocketHolder,
 ) {
     suspend fun onWebSocketFailure(webSocket: WebSocket?) {
-        delay(1500L)
+        delay(1500L) // simple backoff :)
         webSocket?.close(1002, null)
         webSocketHolder.recreateWebSocket()
     }
@@ -32,15 +32,15 @@ class WebsocketDataSource(
     }
 }
 
-sealed class WebSocketState {
-    data object JustCreated : WebSocketState()
-    data class Open(val webSocket: WebSocket) : WebSocketState()
-    data class Message(val webSocket: WebSocket, val text: String) : WebSocketState()
-    data class Close(val webSocket: WebSocket, val code: Int, val reason: String) : WebSocketState()
-    data class Failure(val webSocket: WebSocket, val throwable: Throwable,) : WebSocketState()
+sealed interface WebSocketState {
+    data object JustCreated : WebSocketState
+    data class Open(val webSocket: WebSocket) : WebSocketState
+    data class Message(val webSocket: WebSocket, val text: String) : WebSocketState
+    data class Close(val webSocket: WebSocket, val code: Int, val reason: String) : WebSocketState
+    data class Failure(val webSocket: WebSocket, val throwable: Throwable) : WebSocketState
 }
 
-class BaseWebSocketListener private constructor(): WebSocketListener() {
+class BaseWebSocketListener : WebSocketListener() {
     private val stateFlow = MutableStateFlow<WebSocketState>(WebSocketState.JustCreated)
 
     fun observe(): StateFlow<WebSocketState> = stateFlow.asStateFlow()
@@ -61,37 +61,28 @@ class BaseWebSocketListener private constructor(): WebSocketListener() {
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
         stateFlow.tryEmit(WebSocketState.Failure(webSocket, t))
     }
-
-    companion object {
-        val instance by lazy { BaseWebSocketListener() }
-    }
 }
 
-class WebSocketHolder private constructor() {
-    private val okHttpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY))
-            .build()
-    }
+class WebSocketHolder(
+    private val webSocketListener: BaseWebSocketListener,
+    private val okHttpClient: OkHttpClient
+) {
 
     @Volatile
-    private var webSocket: WebSocket = okHttpClient.newWebSocket(
-        Request.Builder().url("wss://wss.tradernet.com").build(),
-        BaseWebSocketListener.instance
-    )
+    private var webSocket: WebSocket = newWebSocket()
 
     private val mutex = Mutex()
 
     suspend fun recreateWebSocket() {
         mutex.withLock {
-            webSocket = okHttpClient.newWebSocket(
-                Request.Builder().url("wss://wss.tradernet.com").build(),
-                BaseWebSocketListener.instance
-            )
+            webSocket = newWebSocket()
         }
     }
 
-    companion object {
-        val instance by lazy { WebSocketHolder() }
+    private fun newWebSocket(): WebSocket {
+        return okHttpClient.newWebSocket(
+            Request.Builder().url("wss://wss.tradernet.com").build(),
+            webSocketListener
+        )
     }
 }

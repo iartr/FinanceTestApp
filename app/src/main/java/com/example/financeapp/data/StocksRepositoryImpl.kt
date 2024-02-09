@@ -30,20 +30,13 @@ class StocksRepositoryImpl(
     private val websocketDataSource: WebsocketDataSource
 ) : StocksRepository {
 
-    private val tickerCache = ConcurrentHashMap<String, StockDomain>(tickers.size)
+    private val tickerCache = ConcurrentHashMap<String, StockDomain>(tickers.size * 2)
 
     init {
         websocketDataSource.observeWebsocketEvents()
             .onEach { Log.i("WebsocketEvent", "$it") }
             .filterIsInstance<WebSocketState.Open>()
-            .onEach {
-                val toSend = JSONArray()
-                    .put("quotes")
-                    .put(tickersJsonArray)
-                    .toString()
-
-                it.webSocket.send(toSend)
-            }
+            .onEach { it.webSocket.send(tickersRequest) }
             .launchIn(appScopes.globalIoScope)
 
         websocketDataSource.observeWebsocketEvents()
@@ -52,7 +45,7 @@ class StocksRepositoryImpl(
             .launchIn(appScopes.globalIoScope)
     }
 
-    override suspend fun clear() {
+    override suspend fun clearAndReconnect() {
         tickerCache.clear()
         websocketDataSource.onWebSocketFailure(webSocket = null)
     }
@@ -105,5 +98,9 @@ class StocksRepositoryImpl(
         private val tickers = listOf("SP500.IDX", "AAPL.US", "RSTI", "GAZP", "MRKZ", "RUAL", "HYDR", "MRKS", "SBER", "FEES", "TGKA", "VTBR", "ANH.US", "VICL.US", "BURG.US", "NBL.US", "YETI.US", "WSFS.US", "NIO.US", "DXC.US", "MIC.US", "HSBC.US", "EXPN.EU", "GSK.EU", "SHP.EU", "MAN.EU", "DB1.EU", "MUV2.EU", "TATE.EU", "KGF.EU", "MGGT.EU", "SGGD.EU")
         private val tickersJsonArray = JSONArray()
             .apply { tickers.forEach { put(it) } }
+        private val tickersRequest = JSONArray()
+            .put("quotes")
+            .put(tickersJsonArray)
+            .toString()
     }
 }

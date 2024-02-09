@@ -13,15 +13,17 @@ data class StockDomain(
     val changed: Boolean,
     val changedIncrease: Boolean
 ) {
+
     constructor(json: JSONObject) : this(
         ticker = json.getString("c"),
         percentChangeFromLastClose = json.optDouble("pcp", Double.NaN),
         lastTradeExchangeName = json.optString("ltr"),
         paperName = json.optString("name", json.optString("name2")),
         lastTradePrice = json.optDouble("ltp", Double.NaN),
-        priceChangePointsFromLastClose = json.optDouble("chg", 0.0),
+        priceChangePointsFromLastClose = json.optDouble("chg", Double.NaN),
         icon = "https://tradernet.com/logos/get-logo-by-ticker?ticker=${json.getString("c")}",
         changed = false,
         changedIncrease = false,
     )
+
 }

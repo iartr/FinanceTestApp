@@ -24,8 +24,4 @@ class AppScopes {
                     }
         )
     }
-
-    companion object {
-        val instance by lazy { AppScopes() }
-    }
 }

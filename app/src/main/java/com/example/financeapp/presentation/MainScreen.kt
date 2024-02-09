@@ -1,5 +1,6 @@
 package com.example.financeapp.presentation
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,7 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,33 +39,30 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.financeapp.R
-import com.example.financeapp.ui.theme.BubbleGreen
-import com.example.financeapp.ui.theme.BubbleRed
 import com.example.financeapp.ui.theme.FinanceAppTheme
 import com.example.financeapp.ui.theme.OnBubbleColor
-import com.example.financeapp.ui.theme.TradingGreen
-import com.example.financeapp.ui.theme.TradingRed
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun MainScreen() {
-    val viewModel: MainViewModel = viewModel<MainViewModel>(factory = MainViewModel.factory)
-    val uiState: MainViewModel.UiState by viewModel.uiState.collectAsState()
+fun MainScreen(
+    viewModel: MainViewModel = koinViewModel()
+) {
+    val uiState: MainUiState by viewModel.uiState.collectAsState()
 
     when (val state = uiState) {
-        is MainViewModel.UiState.ListData -> {
+        is MainUiState.Success -> {
             StockList(
                 list = state.list,
-                onItemClick = { viewModel.onTickerClick() })
+                onItemClick = viewModel::onTickerClick
+            )
         }
-        MainViewModel.UiState.Error -> {
+        MainUiState.Error -> {
             ErrorState(Modifier.fillMaxSize()) { viewModel.onRetryClick() }
         }
-        MainViewModel.UiState.Loading -> {
+        MainUiState.Loading -> {
             InfiniteProgressFullScreen(Modifier.fillMaxSize())
         }
     }
@@ -110,8 +108,8 @@ fun InfiniteProgressFullScreen(modifier: Modifier = Modifier) {
 @Suppress("NonSkippableComposable")
 @Composable
 fun StockList(
-    list: List<MainViewModel.UiState.Data>,
-    onItemClick: (item: MainViewModel.UiState.Data) -> Unit,
+    list: List<MainUiData>,
+    onItemClick: (item: MainUiData) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -124,11 +122,12 @@ fun StockList(
                 itemUi = item,
                 modifier = Modifier
                     .clickable { onItemClick(item) }
-                    .animateItemPlacement(),
+                    .animateItemPlacement()
+                    .animateContentSize()
             )
             Spacer(Modifier.height(8.dp))
             if (index < list.lastIndex) {
-                Divider(modifier = Modifier.padding(horizontal = 4.dp))
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
             }
         }
     }
@@ -136,7 +135,7 @@ fun StockList(
 
 @Composable
 fun StockListItem(
-    itemUi: MainViewModel.UiState.Data,
+    itemUi: MainUiData,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -173,10 +172,11 @@ fun StockListItem(
                     fontSize = 16.sp,
                     modifier = Modifier
                         .align(Alignment.End)
-                        .then(if (itemUi.showBubble) Modifier
-                            .padding(2.dp)
-                            .background(itemUi.strokeColor, RoundedCornerShape(4.dp))
-                            .padding(2.dp) else Modifier
+                        .then(
+                            if (itemUi.showBubble) Modifier
+                                .padding(2.dp)
+                                .background(itemUi.strokeColor, RoundedCornerShape(4.dp))
+                                .padding(2.dp) else Modifier
                         ),
                 )
 
@@ -215,33 +215,9 @@ fun ErrorPreview() {
 @Composable
 @Preview(showBackground = true)
 fun StockListItemPreview(
-    @PreviewParameter(ItemUiPreviewParameter::class) data: MainViewModel.UiState.Data
+    @PreviewParameter(ItemUiPreviewParameter::class) itemUi: MainUiData
 ) {
     FinanceAppTheme {
-        StockListItem(itemUi = data)
-    }
-}
-
-class ItemUiPreviewParameter : PreviewParameterProvider<MainViewModel.UiState.Data> {
-    override val values: Sequence<MainViewModel.UiState.Data> = sequenceOf(
-        baseUiItem.copy(showSubtitle = false, percentChangeFromLastClose = "+2%", showBubble = true, strokeColor = BubbleGreen),
-        baseUiItem.copy(percentChangeFromLastClose = "-2%", showBubble = true, strokeColor = BubbleRed),
-        baseUiItem,
-        baseUiItem.copy(showSubtitle = false),
-        baseUiItem.copy(percentChangeFromLastClose = "-2%", percentChangeTypoColor = TradingRed),
-    )
-
-    companion object {
-        val baseUiItem = MainViewModel.UiState.Data(
-            icon = null,
-            title = "AnyTitle",
-            subtitle = "MCX | SBER",
-            showSubtitle = true,
-            percentChangeFromLastClose = "+2.5%",
-            lastTradePriceWithChangePoints = "0.123 (1.123)",
-            percentChangeTypoColor = TradingGreen,
-            showBubble = false,
-            strokeColor = androidx.compose.ui.graphics.Color.Black,
-        )
+        StockListItem(itemUi = itemUi)
     }
 }

@@ -7,9 +7,9 @@ import com.example.financeapp.ui.theme.TradingGreen
 import com.example.financeapp.ui.theme.TradingRed
 
 class Mapper(private val domain: StockDomain) {
-    fun map(): MainViewModel.UiState.Data {
+    fun map(): MainUiData {
         val subtitle = subtitle(domain.lastTradeExchangeName, domain.paperName)
-        return MainViewModel.UiState.Data(
+        return MainUiData(
             icon = domain.icon,
             title = domain.ticker,
             subtitle = subtitle,
@@ -24,9 +24,9 @@ class Mapper(private val domain: StockDomain) {
 
     private fun subtitle(lastTradeExchangeName: String, paperName: String): String {
         return when {
-            (domain.lastTradeExchangeName.isNotBlank() && domain.paperName.isNotBlank()) -> "${domain.lastTradeExchangeName} | ${domain.paperName}"
-            (domain.lastTradeExchangeName.isNotBlank() && domain.paperName.isBlank()) -> domain.lastTradeExchangeName
-            (domain.lastTradeExchangeName.isBlank() && domain.paperName.isNotBlank()) -> domain.paperName
+            (lastTradeExchangeName.isNotBlank() && paperName.isNotBlank()) -> "$lastTradeExchangeName | $paperName"
+            (lastTradeExchangeName.isNotBlank() && paperName.isBlank()) -> lastTradeExchangeName
+            (lastTradeExchangeName.isBlank() && paperName.isNotBlank()) -> paperName
             else -> ""
         }
     }
